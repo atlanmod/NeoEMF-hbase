@@ -19,6 +19,7 @@ import org.eclipse.emf.ecore.resource.Resource;
 
 import fr.inria.atlanmod.neoemf.datastore.estores.impl.DirectWriteHbaseResourceEStoreImpl;
 import fr.inria.atlanmod.neoemf.util.ReadCount;
+import fr.inria.atlanmod.neoemf.util.WriteCount;
 
 public class DirectWriteHbaseResourceWithCountersEStoreImpl extends DirectWriteHbaseResourceEStoreImpl {
 
@@ -51,16 +52,25 @@ public class DirectWriteHbaseResourceWithCountersEStoreImpl extends DirectWriteH
 	@Override
 	public Object set(InternalEObject object, EStructuralFeature feature, int index, Object value) {
 		Object result = super.set(object, feature, index, value);
-		if (feature.isMany()) {
-			increment(ReadCount.REMOTE_READ_MANY);
-		} else {
-			increment(ReadCount.REMOTE_READ_SINGLE);
-		}
+		increment(WriteCount.UPDATE_SINGLE);
 		return result;
 
 	}
 	
+	@Override
+	public Object remove(InternalEObject object, EStructuralFeature feature, int index) {
+		Object result = super.remove(object, feature, index);
+		increment(WriteCount.UPDATE_MANY);
+		return result;
+	}
+	
+	@Override
+	public void add(InternalEObject object, EStructuralFeature feature, int index, Object value) {
+		super.add(object, feature, index, value);
+		increment(WriteCount.UPDATE_MANY);
+	}
 	private void increment(Enum<?> update) {
 		jobContext.getCounter(update).increment(1);
 	}
+
 }
