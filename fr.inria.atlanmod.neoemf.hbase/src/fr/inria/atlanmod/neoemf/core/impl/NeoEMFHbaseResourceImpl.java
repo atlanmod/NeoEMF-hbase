@@ -1,12 +1,13 @@
 /*******************************************************************************
- * Copyright (c) 2015 Abel G�mez.
+ * Copyright (c) 2015 Abel G{\'o}mez.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  * 
  * Contributors:
- *     Abel G�mez - initial API and implementation
+ *     Abel G{\'o}mez - initial API and implementation
+ *     Amine Benelallam - implementation
  ******************************************************************************/
 package fr.inria.atlanmod.neoemf.core.impl;
 
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.eclipse.emf.common.notify.Notification;
 import org.eclipse.emf.common.notify.NotificationChain;
 import org.eclipse.emf.common.notify.impl.NotificationImpl;
@@ -40,6 +42,8 @@ import fr.inria.atlanmod.neoemf.core.NeoEMFEObject;
 import fr.inria.atlanmod.neoemf.core.NeoEMFInternalEObject;
 import fr.inria.atlanmod.neoemf.core.NeoEMFResource;
 import fr.inria.atlanmod.neoemf.datastore.estores.SearcheableResourceEStore;
+import fr.inria.atlanmod.neoemf.datastore.estores.counters.DirectWriteHbaseResourceWithCountersEStoreImpl;
+import fr.inria.atlanmod.neoemf.datastore.estores.counters.ReadOnlyHbaseResourceWithCountersEStoreImpl;
 import fr.inria.atlanmod.neoemf.datastore.estores.impl.DirectWriteHbaseResourceEStoreImpl;
 import fr.inria.atlanmod.neoemf.datastore.estores.impl.IsSetCachingDelegatedEStoreImpl;
 import fr.inria.atlanmod.neoemf.datastore.estores.impl.ReadOnlyHbaseResourceEStoreImpl;
@@ -106,6 +110,7 @@ public class NeoEMFHbaseResourceImpl extends ResourceImpl implements NeoEMFResou
 		// initialize the map options with default values 
 		options =  new HashMap<Object, Object> (); 
 		options.put(NeoEMFResource.OPTIONS_HBASE_READ_ONLY, NeoEMFResource.OPTIONS_HBASE_READ_ONLY_DEFAULT);
+		options.put(NeoEMFResource.OPTIONS_HBASE_HAS_COUNTERS, NeoEMFResource.OPTIONS_HBASE_HAS_COUNTERS_DEFAULT);
 			
 		
 	}
@@ -131,16 +136,9 @@ public class NeoEMFHbaseResourceImpl extends ResourceImpl implements NeoEMFResou
 			if (isLoaded) {
 				return;
 			} else {
-				//	this.connection = createConnection();
-				if (this.options.get(NeoEMFResource.OPTIONS_HBASE_READ_ONLY).equals(Boolean.FALSE)) {
-					this.isPersistent = true;
-					this.eStore = createResourceEStore();
-				} else {
-					this.eStore = createReadOnlyResourceEStore();
-				}
-				
+				this.eStore =createResourceEStore(false);
 			}
-			//this.options.putAll(options);
+			
 			isLoaded = true;
 		} finally {
 			isLoading = false;
@@ -167,7 +165,7 @@ public class NeoEMFHbaseResourceImpl extends ResourceImpl implements NeoEMFResou
 		if (!isLoaded() || !this.isPersistent) {
 			//this.connection = createConnection();
 			this.isPersistent = true;
-			this.eStore = createResourceEStore();
+			this.eStore = createResourceEStore(true);
 			this.isLoaded = true;
 		}
 	}
@@ -248,8 +246,35 @@ public class NeoEMFHbaseResourceImpl extends ResourceImpl implements NeoEMFResou
 	 * @return
 	 * @throws IOException 
 	 */
-	protected SearcheableResourceEStore createResourceEStore() throws IOException {
-		return new IsSetCachingDelegatedEStoreImpl(new SizeCachingDelegatedEStoreImpl(new DirectWriteHbaseResourceEStoreImpl(this)));
+	protected SearcheableResourceEStore createResourceEStore(boolean isSave) throws IOException {
+		if (isSave && this.options.get(NeoEMFResource.OPTIONS_HBASE_READ_ONLY).equals(Boolean.FALSE) ) {
+			Exception e = new IllegalArgumentException("Cannot save a read only resource. Please check your resource options !");
+			e.printStackTrace();
+			}
+		if (this.options.get(NeoEMFResource.OPTIONS_HBASE_READ_ONLY).equals(Boolean.FALSE)) {
+			this.isPersistent = true;
+			if (options.containsKey(NeoEMFResource.OPTIONS_HBASE_JOB_CONTEXT)) {
+				try { 
+					TaskAttemptContext context = (TaskAttemptContext) options.get(NeoEMFResource.OPTIONS_HBASE_JOB_CONTEXT);
+					return new IsSetCachingDelegatedEStoreImpl(new SizeCachingDelegatedEStoreImpl(new DirectWriteHbaseResourceWithCountersEStoreImpl(this, context)));
+				} catch (ClassCastException ex) {
+					System.err.println("Context should be of type: "+TaskAttemptContext.class);
+				}
+				
+			} 
+			return new IsSetCachingDelegatedEStoreImpl(new SizeCachingDelegatedEStoreImpl(new DirectWriteHbaseResourceEStoreImpl(this)));	
+		} else {
+			if (options.containsKey(NeoEMFResource.OPTIONS_HBASE_JOB_CONTEXT)) {
+				try { 
+					TaskAttemptContext context = (TaskAttemptContext) options.get(NeoEMFResource.OPTIONS_HBASE_JOB_CONTEXT);
+					return new IsSetCachingDelegatedEStoreImpl(new SizeCachingDelegatedEStoreImpl(new ReadOnlyHbaseResourceWithCountersEStoreImpl(this, context)));
+				} catch (ClassCastException ex) {
+					System.err.println("Context should be of type: "+TaskAttemptContext.class);
+				}
+			}	
+			return new IsSetCachingDelegatedEStoreImpl(new SizeCachingDelegatedEStoreImpl(new ReadOnlyHbaseResourceEStoreImpl(this)));
+		
+		}
 	}
 	/**
 	 * Creates a read-only {@value SearcheableResourceEStore}
@@ -261,7 +286,6 @@ public class NeoEMFHbaseResourceImpl extends ResourceImpl implements NeoEMFResou
 		try {
 			return new IsSetCachingDelegatedEStoreImpl(new SizeCachingDelegatedEStoreImpl(new ReadOnlyHbaseResourceEStoreImpl(this)));
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return null;

@@ -15,14 +15,25 @@ import org.eclipse.emf.ecore.resource.Resource;
 
 public interface NeoEMFResource extends Resource, Resource.Internal {
 
-	public final static String OPTIONS_GRAPH_TYPE = "blueprints.graph";
-	public final static String OPTIONS_GRAPH_TYPE_DEFAULT = "com.tinkerpop.blueprints.impls.tg.TinkerGraph";
 	/**
 	 * an option for creating read-only models
-	 * the value by default is {@value <code>false</code>}
+	 * by default  {@value <code>false</code>}
 	 */
 	String  OPTIONS_HBASE_READ_ONLY = "hbase.readOnly";
 	boolean OPTIONS_HBASE_READ_ONLY_DEFAULT = false; 
+	
+	/**
+	 * an option for adding counters to resources read-only models
+	 * by default  {@value <code>false</code>}
+	 */
+	String  OPTIONS_HBASE_HAS_COUNTERS = "hbase.has.counters";
+	boolean OPTIONS_HBASE_HAS_COUNTERS_DEFAULT = false; 
+	
+	/**
+	 * an option for adding counters to resources read-only models
+	 * by default  {@value <code>false</code>}
+	 */
+	String  OPTIONS_HBASE_JOB_CONTEXT = "hbase.job.context";
 	
 	public abstract InternalEObject.EStore eStore();
 	
