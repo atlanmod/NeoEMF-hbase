@@ -14,7 +14,7 @@
        xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">
     <info
         organisation="Atlanmod - Inria"
-        module="fr.inria.atlanmod.kyanos"
+        module="fr.inria.atlanmod.neoemf"
         status="integration">
 	</info>
 	<dependencies>
@@ -28,6 +28,7 @@
 		<dependency org="org.apache.hbase" name="hbase-common" rev="0.98.13-hadoop2"/>
 		<dependency org="org.apache.hbase" name="hbase-hadoop-compat" rev="0.98.13-hadoop2"/>
 		<dependency org="org.apache.hadoop" name="hadoop-common" rev="2.6.0"/>
+		<dependency org="org.apache.hadoop" name="hadoop-mapreduce-client-common" rev="2.5.1"/>
 		
 	</dependencies>
 </ivy-module>
