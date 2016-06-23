@@ -130,7 +130,7 @@ public class NeoEMFUtil {
 		
 		public static String [] toStringsReferences(byte[] value) {
 			int uidLength = NeoEMFEFactory.UUID_LENGTH;
-			if (value != null) {
+			if (value != null && value.length != 0) {
 				assert (value.length) % (uidLength + 1) == uidLength;
 				int length = (value.length + 1)/(uidLength + 1);
 				
