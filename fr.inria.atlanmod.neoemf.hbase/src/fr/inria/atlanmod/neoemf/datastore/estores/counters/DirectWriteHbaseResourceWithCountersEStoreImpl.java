@@ -18,8 +18,7 @@ import org.eclipse.emf.ecore.InternalEObject;
 import org.eclipse.emf.ecore.resource.Resource;
 
 import fr.inria.atlanmod.neoemf.datastore.estores.impl.DirectWriteHbaseResourceEStoreImpl;
-import fr.inria.atlanmod.neoemf.util.ReadCount;
-import fr.inria.atlanmod.neoemf.util.WriteCount;
+import fr.inria.atlanmod.neoemf.util.NeoEMFCount;
 
 public class DirectWriteHbaseResourceWithCountersEStoreImpl extends DirectWriteHbaseResourceEStoreImpl {
 
@@ -52,7 +51,7 @@ public class DirectWriteHbaseResourceWithCountersEStoreImpl extends DirectWriteH
 	@Override
 	public Object set(InternalEObject object, EStructuralFeature feature, int index, Object value) {
 		Object result = super.set(object, feature, index, value);
-		increment(WriteCount.UPDATE_SINGLE);
+		increment(NeoEMFCount.UPDATE_MODEL);
 		return result;
 
 	}
@@ -60,14 +59,14 @@ public class DirectWriteHbaseResourceWithCountersEStoreImpl extends DirectWriteH
 	@Override
 	public Object remove(InternalEObject object, EStructuralFeature feature, int index) {
 		Object result = super.remove(object, feature, index);
-		increment(WriteCount.UPDATE_MANY);
+		increment(NeoEMFCount.UPDATE_MODEL);
 		return result;
 	}
 	
 	@Override
 	public void add(InternalEObject object, EStructuralFeature feature, int index, Object value) {
 		super.add(object, feature, index, value);
-		increment(WriteCount.UPDATE_MANY);
+		increment(NeoEMFCount.UPDATE_MODEL);
 	}
 	private void increment(Enum<?> update) {
 		jobContext.getCounter(update).increment(1);

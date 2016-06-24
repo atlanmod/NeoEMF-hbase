@@ -25,8 +25,9 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import fr.inria.atlanmod.neoemf.core.NeoEMFEObject;
 import fr.inria.atlanmod.neoemf.datastore.estores.impl.ReadOnlyHbaseResourceEStoreImpl;
 import fr.inria.atlanmod.neoemf.logger.Logger;
+import fr.inria.atlanmod.neoemf.util.NeoEMFCount;
 import fr.inria.atlanmod.neoemf.util.NeoEMFUtil;
-import fr.inria.atlanmod.neoemf.util.ReadCount;
+
 
 public class ReadOnlyHbaseResourceWithCountersEStoreImpl extends ReadOnlyHbaseResourceEStoreImpl {
 
@@ -44,7 +45,7 @@ public class ReadOnlyHbaseResourceWithCountersEStoreImpl extends ReadOnlyHbaseRe
 	}
 
 
-    private void increment(ReadCount readType) {
+    private void increment(Enum<?> readType) {
     	jobContext.getCounter(readType).increment(1);
     }
 	
@@ -63,12 +64,7 @@ public class ReadOnlyHbaseResourceWithCountersEStoreImpl extends ReadOnlyHbaseRe
 		EStoreEntryKey entry = new EStoreEntryKey(object.neoemfId(), feature);
 		if (featuresMap.containsKey(entry) 
 				&& featuresMap.get(entry) != null)  {
-			if (feature.isMany()) {
-				increment(ReadCount.LOCAL_READ_MANY);
-			} else {
-				increment(ReadCount.LOCAL_READ_SINGLE);
-
-			}
+			increment(NeoEMFCount.LOCAL_READ);
 			return featuresMap.get(entry);
 		} else {
 			try {
@@ -85,13 +81,7 @@ public class ReadOnlyHbaseResourceWithCountersEStoreImpl extends ReadOnlyHbaseRe
 				Logger.log(Logger.SEVERITY_ERROR, MessageFormat.format("Unable to get property ''{0}'' for ''{1}''", feature.getName(), object));
 			}
 		}
-		
-		if (feature.isMany()) {
-			increment(ReadCount.REMOTE_READ_MANY);
-		} else {
-			increment(ReadCount.REMOTE_READ_SINGLE);
-		}
-		
+		increment(NeoEMFCount.REMOTE_READ);
 		return featuresMap.get(entry);
 	}
 
